@@ -1,0 +1,149 @@
+@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* 
+  Tailwind CSS v4 
+  不需要 @tailwind base/components/utilities 指令
+*/
+
+:root {
+  /* Core Palette */
+  --environment: #1a140f;
+  --paper: #f4e4bc;
+  --paper-dark: #e9d9af;
+  --text-main: #3d2b1f;
+  --text-tip:#7c6a5a;
+
+  /* Accents & Interactions */
+  --seal-red: #8b0000;
+  --seal-red-hover: #a52a2a;
+  --alchemy-gold: #b8860b;
+  --magic-ink: #1e2a38;
+
+  /* delete model */
+  --delete-bg:#2d1e16;
+
+  /* UI Specifics */
+  --sidebar-bg: #261912;
+  --sidebar-color: #8e7b6d;
+  --sidebar-active: #d4af37;
+  --user-border: #8b4513;
+  --divider: #d4c5a1;
+
+  /* Base Application Colors */
+  --background: var(--paper);
+  --foreground: var(--text-main);
+}
+
+@theme inline {
+  --color-environment: var(--environment);
+  --color-paper: var(--paper);
+  --color-paper-dark: var(--paper-dark);
+  --color-text-main: var(--text-main);
+  --color-text-tip: var(--text-tip);
+
+  --color-seal-red: var(--seal-red);
+  --color-seal-red-hover: var(--seal-red-hover);
+  --color-alchemy-gold: var(--alchemy-gold);
+  --color-magic-ink: var(--magic-ink);
+
+  --color-delete-bg: var(--delete-bg);
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-color: var(--sidebar-color);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-user-border: var(--user-border);
+  --color-divider: var(--divider);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--alchemy-gold) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--alchemy-gold);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--sidebar-active);
+}
+
+.animate-modal-in {
+  animation: modal-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+@keyframes modal-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulse-border {
+  0%,
+  100% {
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(184, 134, 11, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(184, 134, 11, 0.4);
+  }
+}
+
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
