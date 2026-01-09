@@ -2,18 +2,6 @@ import { useState, useCallback } from 'react'
 import type { Message } from '@app/components/MessageBuble'
 
 /**
- * 初始欢迎消息
- * 在新会话开始时显示给用户
- */
-const INITIAL_MESSAGE: Message = {
-  id: '1',
-  content:
-    '你好！我是由 LangGraphJS 驱动的 AI 助手。✨ 我可以帮助你解答问题、提供建议或者进行有趣的对话。有什么我可以帮助你的吗？',
-  role: 'assistant',
-  timestamp: new Date(),
-}
-
-/**
  * 聊天消息管理 Hook
  *
  * 负责管理聊天消息的所有状态和操作:
@@ -26,7 +14,7 @@ const INITIAL_MESSAGE: Message = {
  */
 export function useChatMessages() {
   // 消息列表状态,默认包含初始欢迎消息
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE])
+  const [messages, setMessages] = useState<Message[]>([])
   // 加载状态,标识是否正在发送/接收消息
   const [isLoading, setIsLoading] = useState(false)
 
@@ -114,7 +102,7 @@ export function useChatMessages() {
    * 恢复到初始状态(只有欢迎消息)
    */
   const resetMessages = useCallback(() => {
-    setMessages([INITIAL_MESSAGE])
+    setMessages([])
   }, [])
 
   /**
@@ -123,9 +111,7 @@ export function useChatMessages() {
    * @param historyMessages - 历史消息数组
    */
   const loadMessages = useCallback((historyMessages: Message[]) => {
-    setMessages(
-      historyMessages.length > 0 ? historyMessages : [INITIAL_MESSAGE]
-    )
+    setMessages(historyMessages.length > 0 ? historyMessages : [])
   }, [])
 
   return {

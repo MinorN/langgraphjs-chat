@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import MessageBubble, { type Message } from './MessageBuble'
 import LoadingIndicator from './LoadingIndicator'
+import EmptyState from './EmptyState'
 
 interface MessageListProps {
   messages: Message[] // 要显示的消息数组
@@ -21,13 +22,17 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
 
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar mb-8">
-      <div className="h-full p-6 space-y-4">
-        {messages.map((message, index) => (
-          <MessageBubble key={message.id} message={message} index={index} />
-        ))}
-        {isLoading && <LoadingIndicator />}
-        <div ref={messageEndRef}></div>
-      </div>
+      {messages.length === 0 && !isLoading ? (
+        <EmptyState />
+      ) : (
+        <div className="h-full p-6 space-y-4">
+          {messages.map((message, index) => (
+            <MessageBubble key={message.id} message={message} index={index} />
+          ))}
+          {isLoading && <LoadingIndicator />}
+          <div ref={messageEndRef}></div>
+        </div>
+      )}
     </div>
   )
 }
