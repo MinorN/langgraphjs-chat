@@ -6,7 +6,42 @@ import { getApp } from '@app/agent'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, thread_id } = await request.json()
+    const contentType = request.headers.get('content-type')
+    let message: string
+    let thread_id: string | undefined
+    let tools: string[] | undefined
+    let model: string | undefined
+    const images: File[] = []
+
+    if (contentType?.includes('multipart/form-data')) {
+      // 有图片
+      const formData = await request.formData()
+      message = formData.get('message') as string
+      thread_id = formData.get('thread_id') as string
+
+      const toolsStr = formData.get('tools') as string
+      if (toolsStr) {
+        try {
+          tools = JSON.parse(toolsStr)
+        } catch (error) {
+          console.error('解析 tools 字符串失败:', error)
+        }
+      }
+      model = formData.get('model') as string
+      let i = 0
+      while (formData.get(`image_${i}`)) {
+        images.push(formData.get(`image_${i}`) as File)
+        i++
+      }
+    } else {
+      // 没有上传图片
+      const body = await request.json()
+      message = body.message
+      thread_id = body.thread_id
+      tools = body.tools
+      model = body.model
+    }
+
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({ error: '无效的消息格式' }), {
         status: 400,
@@ -21,7 +56,7 @@ export async function POST(request: NextRequest) {
     const steam = new ReadableStream({
       async start(controller) {
         try {
-          const app = await getApp()
+          const app = await getApp(model, tools)
           for await (const event of app.streamEvents(
             { messages: [userMessage] },
             { version: 'v2', ...threadConfig }

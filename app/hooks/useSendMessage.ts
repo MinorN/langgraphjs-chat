@@ -22,14 +22,41 @@ export function useSendMessage({
   updateSessionName,
 }: UseSendMessageParams) {
   const sendMessage = useCallback(
-    async (input: string) => {
+    async (
+      input: string,
+      selectedTools?: string[],
+      selectedModel?: string,
+      images?: File[]
+    ) => {
       addUserMessage(input)
       setIsLoading(true)
       try {
+        let response: Response
+
+        if (images && images.length > 0) {
+          const formData = new FormData()
+          formData.append('thread_id', sessionId)
+          formData.append('message', input)
+          if (selectedTools) {
+            formData.append('tools', JSON.stringify(selectedTools))
+          }
+          if (selectedModel) {
+            formData.append('model', selectedModel)
+          }
+          images.forEach((image, index) => {
+            formData.append(`image_${index}`, image)
+          })
+        }
+
         const resp = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ thread_id: sessionId, message: input }),
+          body: JSON.stringify({
+            thread_id: sessionId,
+            message: input,
+            tools: selectedTools,
+            model: selectedModel,
+          }),
         })
         if (!resp.ok) {
           throw new Error(`网络请求失败`)
