@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { getOrCreateThreadId, setThreadId } from '@app/utils/threadId'
+import { getOrCreateThreadId } from '@app/utils/threadId'
 
 /**
  * 会话管理 Hook
@@ -36,7 +36,6 @@ export function useSessionManager() {
    * @param id - 新会话的 ID
    */
   const createNewSession = useCallback((id: string) => {
-    setThreadId(id) // 更新本地存储
     setSessionId(id) // 更新状态
     setHasUserMessage(false) // 重置用户消息标记
     sidebarRef.current?.fetchSessions?.() // 刷新侧边栏

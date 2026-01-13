@@ -67,6 +67,12 @@ export default function ChatPage() {
         description:
           '千问3Omni系列模型，具备强大的多模态理解与生成能力，支持文本、图像等多种输入形式，能够生成高质量的多模态内容，适用于广泛的应用场景',
       },
+      {
+        id: 'qwen-image-max',
+        name: '千问图像Max',
+        description:
+          '千问图像系列Max模型，在图像理解与生成方面进行了专项优化，具备卓越的视觉处理能力，适用于复杂的图像相关任务和应用场景',
+      },
     ],
     []
   )
