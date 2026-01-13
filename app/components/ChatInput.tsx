@@ -2,7 +2,7 @@
 
 import { forwardRef, useRef, useState } from 'react'
 import ToolSelector, { Tool } from './ToolSelector'
-import { Model } from './ModelSelector'
+import ModelSelector, { Model } from './ModelSelector'
 
 interface ChatInputProps {
   onSend: (
@@ -91,12 +91,21 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
     return (
       <>
         <div className="w-full p-6 border-t border-divider bg-paper-dark/60 rounded-br-lg">
-          <div className="flex items-center mb-3.5">
-            <ToolSelector
-              tools={availableTools}
-              selectedTools={selectedTools}
-              onToolToggle={handleToolToggle}
-            />
+          <div className="flex items-center mb-3.5 gap-2">
+            {availableModels.length > 0 && onModelChange && (
+              <ModelSelector
+                selectedModel={currentModel}
+                onModelChange={onModelChange}
+                models={availableModels}
+              />
+            )}
+            {availableTools.length > 0 && (
+              <ToolSelector
+                tools={availableTools}
+                selectedTools={selectedTools}
+                onToolToggle={handleToolToggle}
+              />
+            )}
           </div>
           <div className="flex items-center gap-4">
             <textarea
