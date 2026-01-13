@@ -1,4 +1,9 @@
 import { useEffect, useCallback } from 'react'
+import {
+  mapStoredMessagesToChatMessages,
+  HumanMessage,
+  AIMessage,
+} from '@langchain/core/messages'
 import type { Message } from '@app/components/MessageBuble'
 
 /**
@@ -42,43 +47,66 @@ export function useChatHistory(
         const data = await res.json()
 
         if (Array.isArray(data.history) && data.history.length > 0) {
-          // 2. 转换 LangGraph 消息格式到应用格式
-          const historyMsgs: Message[] = data.history.map(
-            (
-              msg: {
-                id: string[] | unknown // LangGraph 的消息 ID 格式
-                kwargs?: { content?: string } // 消息内容在 kwargs 中
-              },
-              idx: number
-            ) => {
-              // 3. 根据消息类型判断角色
-              let role: 'user' | 'assistant' = 'assistant'
-
-              if (Array.isArray(msg.id) && msg.id.includes('HumanMessage')) {
-                role = 'user' // 用户消息
-              } else if (
-                Array.isArray(msg.id) &&
-                (msg.id.includes('AIMessage') ||
-                  msg.id.includes('AIMessageChunk'))
-              ) {
-                role = 'assistant' // AI 消息
+          let historyMsgs: Message[] = []
+          try {
+            const serializedData = JSON.parse(JSON.stringify(data.history))
+            historyMsgs = mapStoredMessagesToChatMessages(
+              serializedData
+            ) as unknown as Message[]
+          } catch (deserializeError) {
+            console.error(
+              '反序列化失败，尝试手动重建消息对象',
+              deserializeError
+            )
+            historyMsgs = data.history.map((msg: any, idx: number) => {
+              let msgType = null
+              if (msg.id && Array.isArray(msg.id)) {
+                const idArray = msg.id
+                for (const part of idArray) {
+                  if (part === 'HumanMessage' || part === 'human') {
+                    msgType = 'human'
+                    break
+                  } else if (part === 'AIMessage' || part === 'ai') {
+                    msgType = 'ai'
+                    break
+                  }
+                }
               }
-
-              // 4. 构造标准化的消息对象
-              return {
-                id: String(idx + 1), // 使用索引作为 ID
-                content: msg.kwargs?.content || '', // 提取消息内容
-                role,
-                timestamp: new Date(), // 使用当前时间作为时间戳
+              if (!msgType) {
+                const msgData = msg.data || msg.kwargs
+                if (msgData) {
+                  msgType = msgData.type
+                }
               }
-            }
-          )
+              if (!msgType) {
+                msgType = idx % 2 === 0 ? 'human' : 'ai'
+              }
+              const msgData = msg.data || msg.kwargs || msg
+              const content = msgData.content || msg.content || ''
+              const messageId = msgData.id || msg.id
 
-          // 5. 更新消息列表
+              if (msgType === 'human' || msgType === 'HumanMessage') {
+                return new HumanMessage({
+                  content,
+                  id: messageId,
+                }) as unknown as Message
+              } else {
+                return new AIMessage({
+                  content,
+                  id: messageId,
+                }) as unknown as Message
+              }
+            })
+          }
+          // 3. 更新消息列表
           onLoadMessages(historyMsgs)
 
-          // 6. 检查是否有用户消息(用于判断是否需要更新会话名)
-          onHasUserMessage(historyMsgs.some((msg) => msg.role === 'user'))
+          // 4. 检查是否有用户消息(用于判断是否需要更新会话名)
+          const hasUserMsg = historyMsgs.some((msg) => {
+            const msgType = (msg as any)._getType?.()
+            return msgType === 'human'
+          })
+          onHasUserMessage(hasUserMsg)
         } else {
           // 没有历史记录,重置为初始状态
           onLoadMessages([])

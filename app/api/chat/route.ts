@@ -1,54 +1,55 @@
 import '@app/utils/loadEnv'
 import { NextRequest, NextResponse } from 'next/server'
-import { HumanMessage } from '@langchain/core/messages'
+import {
+  HumanMessage,
+  mapStoredMessageToChatMessage,
+} from '@langchain/core/messages'
 import { randomUUID } from 'crypto'
 import { getApp } from '@app/agent'
+import { Message } from '@app/components/MessageBuble'
 
 export async function POST(request: NextRequest) {
   try {
-    const contentType = request.headers.get('content-type')
-    let message: string
-    let thread_id: string | undefined
-    let tools: string[] | undefined
-    let model: string | undefined
-    const images: File[] = []
+    const body = await request.json()
+    const { message, thread_id, tools, model } = body
 
-    if (contentType?.includes('multipart/form-data')) {
-      // 有图片
-      const formData = await request.formData()
-      message = formData.get('message') as string
-      thread_id = formData.get('thread_id') as string
+    console.log('message', tools)
 
-      const toolsStr = formData.get('tools') as string
-      if (toolsStr) {
-        try {
-          tools = JSON.parse(toolsStr)
-        } catch (error) {
-          console.error('解析 tools 字符串失败:', error)
-        }
-      }
-      model = formData.get('model') as string
-      let i = 0
-      while (formData.get(`image_${i}`)) {
-        images.push(formData.get(`image_${i}`) as File)
-        i++
-      }
-    } else {
-      // 没有上传图片
-      const body = await request.json()
-      message = body.message
-      thread_id = body.thread_id
-      tools = body.tools
-      model = body.model
-    }
-
-    if (!message || typeof message !== 'string') {
+    if (!message) {
       return new Response(JSON.stringify({ error: '无效的消息格式' }), {
         status: 400,
       })
     }
 
-    const userMessage = new HumanMessage(message)
+    let userMessage: Message
+
+    if (typeof message === 'string') {
+      userMessage = new HumanMessage(message)
+    } else if (Array.isArray(message)) {
+      userMessage = new HumanMessage({
+        content: message,
+      })
+    } else if (typeof message === 'object' && message !== null) {
+      try {
+        userMessage = mapStoredMessageToChatMessage(message)
+      } catch {
+        const content = message.content || message.kwargs?.content
+        if (content) {
+          userMessage = new HumanMessage(content)
+        } else {
+          return NextResponse.json(
+            {
+              error: '无效的消息格式',
+              detail: '消息对象缺少 content 字段',
+            },
+            { status: 400 }
+          )
+        }
+      }
+    } else {
+      return NextResponse.json({ error: '无效的消息格式' }, { status: 400 })
+    }
+
     const threadId =
       typeof thread_id === 'string' && thread_id ? thread_id : randomUUID()
     const threadConfig = { configurable: { thread_id: threadId } }
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           const app = await getApp(model, tools)
+
+          let completeMessage = null
+
           for await (const event of app.streamEvents(
             { messages: [userMessage] },
             { version: 'v2', ...threadConfig }
@@ -71,13 +75,26 @@ export async function POST(request: NextRequest) {
                   }) + '\n'
                 controller.enqueue(new TextEncoder().encode(data))
               }
+              completeMessage = chunk
             }
           }
+
+          const finalState = await app.getState(threadConfig)
+          const allMessages = finalState?.values?.messages || []
+          const serializedMessage = completeMessage
+            ? JSON.parse(JSON.stringify(completeMessage))
+            : null
+          const serializedMessages = allMessages.map((msg: any) =>
+            JSON.parse(JSON.stringify(msg))
+          )
+
           const endData =
             JSON.stringify({
               type: 'end',
               status: 'success',
               thread_id: threadId,
+              message: serializedMessage, // 发送序列化的消息对象
+              messages: serializedMessages, // 发送所有序列化的消息历史
             }) + '\n'
           controller.enqueue(new TextEncoder().encode(endData))
           controller.close()
@@ -127,9 +144,14 @@ export async function GET(request: NextRequest) {
       const state = await app.getState({
         configurable: { thread_id },
       })
+
+      const messages = state?.values?.messages || []
+      const serializedMessages = messages.map((msg: any) =>
+        JSON.parse(JSON.stringify(msg))
+      )
       return NextResponse.json({
         thread_id,
-        history: state?.values?.messages || [],
+        history: serializedMessages,
       })
     } catch (e) {
       return NextResponse.json(

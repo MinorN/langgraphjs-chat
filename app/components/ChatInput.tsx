@@ -1,8 +1,10 @@
 'use client'
 
-import { forwardRef, useRef, useState } from 'react'
+import { forwardRef, useEffect, useRef, useState } from 'react'
 import ToolSelector, { Tool } from './ToolSelector'
 import ModelSelector, { Model } from './ModelSelector'
+import { Image as ImageIcon, X } from 'lucide-react'
+import Image from 'next/image'
 
 interface ChatInputProps {
   onSend: (
@@ -62,18 +64,15 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
 
     // 发送消息
     const handleSend = () => {
-      if (!input.trim() || disabled) return
+      if ((!input.trim() && uploadedImages.length === 0) || disabled) return
       onSend(
-        input.trim(),
+        input,
         selectedTools.length > 0 ? selectedTools : undefined,
         currentModel,
         uploadedImages.length > 0 ? uploadedImages : undefined
       )
+      clearImages()
       setInput('')
-      // 重置高度
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
     }
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -85,12 +84,76 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setInput(e.target.value)
-      adjustTextareaHeight()
     }
+
+    // 打开文件上传
+    const handleAddClick = () => {
+      fileInputRef.current?.click()
+    }
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || [])
+      const imageFiles = files.filter((file) => file.type.startsWith('image/'))
+
+      if (imageFiles.length > 0) {
+        setUploadedImages((prev) => [...prev, ...imageFiles])
+
+        // 创建预览 URL
+        const newPreviews = imageFiles.map((file) => URL.createObjectURL(file))
+        setImagePreviews((prev) => [...prev, ...newPreviews])
+      }
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+
+    const removeImage = (index: number) => {
+      URL.revokeObjectURL(imagePreviews[index])
+      setUploadedImages((prev) => prev.filter((_, i) => i !== index))
+      setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+    }
+
+    // 清空所有图片
+    const clearImages = () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url))
+      setUploadedImages([])
+      setImagePreviews([])
+    }
+
+    useEffect(() => {
+      adjustTextareaHeight()
+    }, [input])
+
+    useEffect(() => {
+      return () => {
+        imagePreviews.forEach((url) => URL.revokeObjectURL(url))
+      }
+    }, [imagePreviews])
 
     return (
       <>
         <div className="w-full p-6 border-t border-divider bg-paper-dark/60 rounded-br-lg">
+          {imagePreviews.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mb-3.5">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="w-16 h-16 relative group">
+                  <Image
+                    src={preview}
+                    alt={`preview-${index}`}
+                    width={100}
+                    height={100}
+                    className="w-full h-full object-cover rounded"
+                  />
+                  <button
+                    className="absolute -top-1.5 -right-1.5 bg-[#8b0000] text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    onClick={() => removeImage(index)}
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex items-center mb-3.5 gap-2">
             {availableModels.length > 0 && onModelChange && (
               <ModelSelector
@@ -108,6 +171,27 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
             )}
           </div>
           <div className="flex items-center gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            ></input>
+            <button
+              className="p-2 text-alchemy-gold hover:bg-alchemy-gold hover:text-paper rounded-full transition-all relative cursor-pointer"
+              onClick={handleAddClick}
+            >
+              <ImageIcon className="w-5 h-5" />
+              <span
+                className={`absolute top-0 right-0 bg-seal-red text-white text-[8px] w-4 h-4 flex items-center justify-center rounded-full animate-bounce ${
+                  uploadedImages.length === 0 ? 'hidden' : ''
+                }`}
+              >
+                {uploadedImages.length}
+              </span>
+            </button>
             <textarea
               value={input}
               ref={textareaRef}

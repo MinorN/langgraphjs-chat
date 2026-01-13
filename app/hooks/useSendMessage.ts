@@ -1,10 +1,11 @@
+import { Message } from '@langchain/core/messages'
 import { useCallback } from 'react'
 
 interface UseSendMessageParams {
   sessionId: string // 当前会话 ID
   setIsLoading: (loading: boolean) => void // 设置加载状态
-  addUserMessage: (content: string) => void // 添加用户消息
-  addAssistantMessage: () => { id: string } // 添加 AI 消息
+  addUserMessage: (content: string | Array<any>) => void // 添加用户消息
+  addAssistantMessage: () => Message // 添加 AI 消息
   updateMessageContent: (id: string, content: string) => void // 更新消息内容
   finishStreaming: (id: string) => void // 完成流式传输
   addErrorMessage: () => void // 添加错误消息
@@ -28,57 +29,78 @@ export function useSendMessage({
       selectedModel?: string,
       images?: File[]
     ) => {
-      addUserMessage(input)
       setIsLoading(true)
       try {
-        let response: Response
+        let messageContent: string | Array<any> = input
+        const imageData: Array<{ data: string; mimeType: string }> = []
 
+        // 如果上传图片需要处理图片
         if (images && images.length > 0) {
-          const formData = new FormData()
-          formData.append('thread_id', sessionId)
-          formData.append('message', input)
-          if (selectedTools) {
-            formData.append('tools', JSON.stringify(selectedTools))
+          for (const image of images) {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => {
+                const result = reader.result as string
+                const base64Data = result.split(',')[1]
+                resolve(base64Data)
+              }
+              reader.onerror = reject
+              reader.readAsDataURL(image)
+            })
+            imageData.push({ data: base64, mimeType: image.type })
           }
-          if (selectedModel) {
-            formData.append('model', selectedModel)
-          }
-          images.forEach((image, index) => {
-            formData.append(`image_${index}`, image)
-          })
+          messageContent = [
+            {
+              type: 'text',
+              text: input,
+            },
+            ...imageData.map((img) => ({
+              type: 'image_url',
+              image_url: {
+                url: `data:${img.mimeType};base64,${img.data}`,
+              },
+            })),
+          ]
         }
 
-        const resp = await fetch('/api/chat', {
+        console.log('包含图片的消息内容:', messageContent)
+
+        addUserMessage(messageContent as any)
+
+        const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             thread_id: sessionId,
-            message: input,
-            tools: selectedTools,
-            model: selectedModel,
+            message: messageContent,
+            tools: selectedTools || [],
+            model: selectedModel || null,
           }),
         })
-        if (!resp.ok) {
-          throw new Error(`网络请求失败`)
+
+        if (!response.ok || !response.body) {
+          throw new Error('网络响应不正确')
         }
+
         updateSessionName(input)
-        // 4. 创建 AI 消息占位符
+
         const assistantMessage = addAssistantMessage()
 
-        // 5. 处理流式响应
-        const reader = resp.body?.getReader()
+        const reader = response.body?.getReader()
         if (!reader) {
           throw new Error('无法读取响应流')
         }
 
         const decoder = new TextDecoder()
         let buffer = '' // 缓冲区,处理跨块的 JSON
-        setIsLoading(false)
 
-        // 6. 逐块读取响应流
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
+
+          setIsLoading(false)
 
           // 解码二进制数据为文本
           buffer += decoder.decode(value, { stream: true })
