@@ -1,0 +1,6 @@
+OPENAI_API_KEY=xxxx
+OPENAI_MODEL_NAME=xxxxx
+OPENAI_BASE_URL=xxxx
+
+# 高德天气 api
+GAODE_WEATHER_API_KEY=xxxx
