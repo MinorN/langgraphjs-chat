@@ -31,7 +31,9 @@ export function useSendMessage({
     ) => {
       setIsLoading(true)
       try {
-        let messageContent: string | Array<any> = input
+        let messageContent: string | Array<any> = [
+          { type: 'text', text: input },
+        ]
         const imageData: Array<{ data: string; mimeType: string }> = []
 
         // 如果上传图片需要处理图片
