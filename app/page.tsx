@@ -53,22 +53,34 @@ export default function ChatPage() {
   const availableModels = useMemo<Model[]>(
     () => [
       {
-        id: 'qwen3-max',
+        id: 'openai:qwen3-max',
         name: '千问3Max',
         description:
           '通义千问3系列Max模型，相较preview版本在智能体编程与工具调用方向进行了专项升级。本次发布的正式版模型达到领域SOTA水平，适配场景更加复杂的智能体需求',
       },
       {
-        id: 'qwen-plus',
+        id: 'openai:qwen-plus',
         name: '千问3Plus',
         description:
           'Qwen3系列Plus模型，实现思考模式和非思考模式的有效融合，可在对话中切换模式。推理能力显著超过QwQ、通用能力显著超过Qwen2.5-Plus，达到同规模业界SOTA水平',
       },
       {
-        id: 'qwen3-omni-flash',
-        name: '千问3Omni Flash(全模态)',
+        id: 'openai:qwen3-omni-flash',
+        name: '千问3 omni Flash(全模态)',
         description:
           '千问3Omni系列模型，具备强大的多模态理解与生成能力，支持文本、图像等多种输入形式，能够生成高质量的多模态内容，适用于广泛的应用场景',
+      },
+      {
+        id: 'openai:glm-4.7',
+        name: 'glm-4.7',
+        description:
+          '智谱最新旗舰，具备更强的编程能力与更稳定的多步骤推理/执行能力。总参数355B，支持长程任务规划、编码、工具协同，问答自然、写作沉浸、创意角色扮演能力强。',
+      },
+      {
+        id: 'openai:deepseek-v3.2',
+        name: 'deepseek-v3.2',
+        description:
+          'DeepSeek-V3.2是引入DeepSeek Sparse Attention（一种稀疏注意力机制）的正式版模型，也是DeepSeek推出的首个将思考融入工具使用的模型，同时支持思考模式与非思考模式的工具调用。',
       },
     ],
     []
