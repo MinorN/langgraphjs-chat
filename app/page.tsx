@@ -34,6 +34,9 @@ export default function ChatPage() {
     finishStreaming, // 完成流式传输
     addErrorMessage, // 添加错误消息
     loadMessages, // 加载历史消息
+    updateToolCalls,
+    updateToolResult,
+    updateToolError,
   } = useChatMessages()
   const {
     sessionId, // 当前会话 ID
@@ -91,6 +94,9 @@ export default function ChatPage() {
     finishStreaming,
     addErrorMessage,
     updateSessionName,
+    updateToolCalls,
+    updateToolResult,
+    updateToolError,
   })
   return (
     <>

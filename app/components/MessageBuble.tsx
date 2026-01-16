@@ -3,8 +3,12 @@
 import { AIMessage, BaseMessage } from '@langchain/core/messages'
 import MarkdownRenderer from './MarkdownRenderer'
 import { PenTool } from 'lucide-react'
+import { ToolCall } from '@app/agent/types/tool.types'
+import ToolCallDisplay from './ToolCallDisplay'
 export interface Message extends BaseMessage {
   isStreaming?: boolean // 是否正在流式传输(显示打字光标)
+  tool_calls?: ToolCall[]
+  toolCallResults?: ToolCall[]
 }
 
 interface MessageBubbleProps {
@@ -16,19 +20,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   // 判断消息类型
   const isUser = AIMessage.isInstance(message) ? false : true
 
-  // 显示时间
-  const getTime = (timestamp: string) => {
-    const hour = new Date(timestamp).getHours()
-    if (hour >= 5 && hour < 12) {
-      return '晨曦微露'
-    } else if (hour >= 12 && hour < 18) {
-      return '正午炽阳'
-    } else if (hour >= 18 && hour < 21) {
-      return '暮色将至'
-    } else {
-      return '午夜秘语'
-    }
-  }
   let messageContent = ''
   const imageUrls: string[] = []
   // 处理不同类型的content text image
@@ -95,6 +86,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               ))}
             </div>
           )}
+          {!isUser && (message.tool_calls || message.toolCallResults) && (
+            <ToolCallDisplay
+              toolCalls={message.toolCallResults ?? message.tool_calls ?? []}
+            />
+          )}
           {messageContent && <MarkdownRenderer content={messageContent} />}
         </div>
         {/* 打字光标 */}
@@ -102,9 +98,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           <span className="inline-block w-0.5 h-3 bg-alchemy-gold ml-1 typing-cursor"></span>
         )}
 
-        <div className="text-[10px] text-text-tip mt-2">
+        {/* <div className="text-[10px] text-text-tip mt-2">
           {getTime(message.created_at)}
-        </div>
+        </div> */}
       </div>
     </div>
   )

@@ -13,15 +13,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { message, thread_id, tools, model } = body
 
-    console.log('message', tools)
-
     if (!message) {
       return new Response(JSON.stringify({ error: '无效的消息格式' }), {
         status: 400,
       })
     }
 
-    let userMessage: Message
+    let userMessage
 
     if (typeof message === 'string') {
       userMessage = new HumanMessage(message)
@@ -76,6 +74,33 @@ export async function POST(request: NextRequest) {
                 controller.enqueue(new TextEncoder().encode(data))
               }
               completeMessage = chunk
+            } else if (event.event === 'on_chat_model_end') {
+              // 开始调用工具
+              const output = event.data?.output
+              if (output?.tool_calls && output.tool_calls.length > 0) {
+                const toolData =
+                  JSON.stringify({
+                    type: 'tool_calls',
+                    tool_calls: output.tool_calls,
+                  }) + '\n'
+                controller.enqueue(new TextEncoder().encode(toolData))
+              }
+            } else if (event.event === 'on_tool_end') {
+              const toolCallData =
+                JSON.stringify({
+                  type: 'tool_result',
+                  name: event.name,
+                  data: event.data,
+                }) + '\n'
+              controller.enqueue(new TextEncoder().encode(toolCallData))
+            } else if (event.event === 'on_tool_error') {
+              const toolErrorData =
+                JSON.stringify({
+                  type: 'tool_error',
+                  name: event.name,
+                  data: event.data,
+                }) + '\n'
+              controller.enqueue(new TextEncoder().encode(toolErrorData))
             }
           }
 

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { HumanMessage, AIMessage } from '@langchain/core/messages'
 import type { Message } from '@app/components/MessageBuble'
-
+import { ToolCall } from '@app/agent/types/tool.types'
 /**
  * 聊天消息管理 Hook
  *
@@ -53,6 +53,9 @@ export function useChatMessages() {
               id: msg.id,
             }) as Message
             updatedMessage.isStreaming = msg.isStreaming
+            updatedMessage.isStreaming = msg.isStreaming
+            updatedMessage.toolCallResults = msg.toolCallResults
+            updatedMessage.tool_calls = msg.tool_calls
             return updatedMessage
           }
           return msg
@@ -66,9 +69,11 @@ export function useChatMessages() {
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.id === messageId) {
-          const updatedMsg = msg as Message
-          updatedMsg.isStreaming = false
-          return updatedMsg
+          const updated = {
+            ...msg,
+            isStreaming: false,
+          } as Message
+          return updated
         }
         return msg
       })
@@ -87,6 +92,76 @@ export function useChatMessages() {
     setMessages([])
   }, [])
 
+  const updateToolCalls = useCallback(
+    (messageId: string, toolCalls: ToolCall[]) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            const updatedMessage = {
+              ...msg,
+              toolCallResults: toolCalls,
+            } as Message
+            return updatedMessage
+          }
+          return msg
+        })
+      )
+    },
+    []
+  )
+
+  const addToolCalls = useCallback((messageId: string, toolCall: ToolCall) => {
+    setMessages((pre) =>
+      pre.map((msg) => {
+        if (msg.id === messageId) {
+          const updatedMsg = {
+            ...msg,
+            toolCallResults: [...(msg.toolCallResults || []), toolCall],
+          } as Message
+          return updatedMsg
+        }
+        return msg
+      })
+    )
+  }, [])
+
+  const updateToolResult = useCallback(
+    (messageId: string, toolName: string, output: any) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            console.log(msg)
+            const toolCalls = msg.toolCallResults || []
+            const updatedToolCalls = toolCalls.map((tc) =>
+              tc.name === toolName ? { ...tc, output } : tc
+            )
+            return { ...msg, toolCallResults: updatedToolCalls } as Message
+          }
+          return msg
+        })
+      )
+    },
+    []
+  )
+
+  const updateToolError = useCallback(
+    (messageId: string, toolName: string, error: string) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            const toolCalls = msg.toolCallResults || []
+            const updatedToolCalls = toolCalls.map((tc) =>
+              tc.name === toolName ? { ...tc, error } : tc
+            )
+            return { ...msg, toolCallResults: updatedToolCalls } as Message
+          }
+          return msg
+        })
+      )
+    },
+    []
+  )
+
   const loadMessages = useCallback((historyMessages: Message[]) => {
     setMessages(historyMessages.length > 0 ? historyMessages : [])
   }, [])
@@ -102,5 +177,9 @@ export function useChatMessages() {
     addErrorMessage,
     resetMessages,
     loadMessages,
+    updateToolCalls,
+    addToolCalls,
+    updateToolResult,
+    updateToolError,
   }
 }

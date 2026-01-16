@@ -6,23 +6,6 @@ import {
 } from '@langchain/core/messages'
 import type { Message } from '@app/components/MessageBuble'
 
-/**
- * 聊天历史加载 Hook
- *
- * 功能:
- * - 自动加载指定会话的历史消息
- * - 当会话 ID 变化时自动重新加载
- * - 解析服务器返回的消息格式
- * - 判断会话是否包含用户消息
- *
- * 使用场景:
- * - 切换到历史会话时加载之前的对话
- * - 刷新页面后恢复当前会话
- *
- * @param sessionId - 当前会话 ID
- * @param onLoadMessages - 加载完成后的回调,接收消息数组
- * @param onHasUserMessage - 设置是否有用户消息的回调
- */
 export function useChatHistory(
   sessionId: string,
   onLoadMessages: (messages: Message[]) => void,

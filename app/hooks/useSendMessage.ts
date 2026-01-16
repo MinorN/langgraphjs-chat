@@ -1,3 +1,4 @@
+import { ToolCall } from '@app/agent/types/tool.types'
 import { Message } from '@langchain/core/messages'
 import { useCallback } from 'react'
 
@@ -10,6 +11,10 @@ interface UseSendMessageParams {
   finishStreaming: (id: string) => void // 完成流式传输
   addErrorMessage: () => void // 添加错误消息
   updateSessionName: (name: string) => void // 更新会话名称
+  updateToolCalls: (messageId: string, toolCalls: ToolCall[]) => void // 更新工具调用
+  addToolCall?: (messageId: string, toolCall: ToolCall) => void // 添加工具调用
+  updateToolResult: (messageId: string, toolName: string, output: any) => void // 更新工具结果
+  updateToolError: (messageId: string, toolName: string, error: string) => void // 更新工具错误
 }
 
 export function useSendMessage({
@@ -21,6 +26,10 @@ export function useSendMessage({
   finishStreaming,
   addErrorMessage,
   updateSessionName,
+  updateToolCalls,
+  addToolCall,
+  updateToolResult,
+  updateToolError,
 }: UseSendMessageParams) {
   const sendMessage = useCallback(
     async (
@@ -65,8 +74,6 @@ export function useSendMessage({
           ]
         }
 
-        console.log('包含图片的消息内容:', messageContent)
-
         addUserMessage(messageContent as any)
 
         const response = await fetch('/api/chat', {
@@ -101,9 +108,6 @@ export function useSendMessage({
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-
-          setIsLoading(false)
-
           // 解码二进制数据为文本
           buffer += decoder.decode(value, { stream: true })
 
@@ -116,14 +120,36 @@ export function useSendMessage({
             if (line.trim()) {
               try {
                 const data = JSON.parse(line)
+                console.log('xxxxxxxxxx', data.type, data)
 
                 // 处理内容片段
                 if (data.type === 'chunk' && data.content) {
-                  updateMessageContent(assistantMessage.id, data.content)
+                  updateMessageContent(assistantMessage.id!, data.content)
+                } else if (data.type === 'tool_calls' && data.tool_calls) {
+                  updateToolCalls(assistantMessage.id!, data.tool_calls)
+                } else if (data.type === 'tool_result' && data.name) {
+                  const output = data.data?.output ?? data.output
+                  updateToolResult(assistantMessage.id!, data.name, output)
+                }
+                // 处理工具执行错误
+                else if (data.type === 'tool_error' && data.name) {
+                  const error =
+                    data.data?.error?.message || data.data?.error || data.error
+                  updateToolError(
+                    assistantMessage.id!,
+                    data.name,
+                    error || '未知错误'
+                  )
                 }
                 // 流结束
                 else if (data.type === 'end') {
-                  finishStreaming(assistantMessage.id)
+                  if (data.message && data.message.tool_calls) {
+                    updateToolCalls(
+                      assistantMessage.id!,
+                      data.message.tool_calls
+                    )
+                  }
+                  finishStreaming(assistantMessage.id!)
                   break
                 }
                 // 服务器错误
@@ -152,6 +178,9 @@ export function useSendMessage({
       finishStreaming,
       addErrorMessage,
       updateSessionName,
+      updateToolCalls,
+      updateToolResult,
+      updateToolError,
     ]
   )
   return { sendMessage }

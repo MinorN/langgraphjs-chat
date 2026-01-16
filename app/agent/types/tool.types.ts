@@ -9,3 +9,11 @@ export interface ToolConfig<T = Record<string, unknown>> {
   handler: (params?: T) => Promise<string> | string
   options?: Record<string, unknown>
 }
+
+export interface ToolCall {
+  id: string
+  name: string
+  args: Record<string, any>
+  output?: any
+  error?: string
+}
